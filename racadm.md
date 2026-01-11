@@ -49,16 +49,7 @@ racadm fwupdate -g -u -a x.x.x.x -d ftp/updates/firmimg.d7
 
 ---
 
-## Commands Used
-
-All commands were executed using Dell's Remote Access Controller Administrative Tool (racadm) via iDRAC.
-
-### Command Format
-```
-racadm get BIOS.[CategoryName]
-```
-
-### Actual Commands Sent:
+## Categories:
 1. `racadm get BIOS.SysInformation`
 2. `racadm get BIOS.ProcSettings`
 3. `racadm get BIOS.MemSettings`
