@@ -16,15 +16,12 @@ racadm set System.Power.Hotspare.Enable Disabled
 racadm set BIOS.ProcSettings.ControlledTurbo Enabled
 racadm set BIOS.SysProfileSettings.UncoreFrequency MaxUFS
 racadm set BIOS.SysProfileSettings.MemFrequency MaxPerf
-racadm set BIOS.SysProfileSettings.MemPwrMgmt Disabled
 racadm set BIOS.SysProfileSettings.MemPatrolScrub Disabled
 racadm set BIOS.ProcSettings.DynamicCoreAllocation Disabled
 racadm set BIOS.SysProfileSettings.ProcCStates Disabled
 racadm set BIOS.SysProfileSettings.ProcC1E Disabled
 racadm set BIOS.SysProfileSettings.MonitorMwait Disabled
 racadm set System.ThermalSettings.FanSpeedOffset 1
-racadm set cfgThermalEnhancedCoolingMode 1
-racadm set System.ThermalSettings.AirTemperatureRiseLimit 255
 racadm set BIOS.SysSecurity.PwrButton Disabled
 racadm set BIOS.SysSecurity.SetupPassword HackedThisiDRAC 
 racadm set System.LCD.Configuration 0
