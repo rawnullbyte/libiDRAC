@@ -345,8 +345,7 @@ class iDRAC:
             "racadm get BIOS.SataSettings",
             "racadm get BIOS.SysSecurity",
             "racadm get BIOS.TpmAdvanced",
-            "racadm get BIOS.MiscSettings",
-            "racadm get BIOS.SerialCommSettings"
+            "racadm get BIOS.MiscSettings"
         ]
         
         result = {
