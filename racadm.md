@@ -1,5 +1,14 @@
 ## Optimized commands
 ```bash
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminUserName "{username}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminPassword "{password}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminPrivilege "{privilege}"
+racadm config -g cfgUserAdmin -i 10 -o cfgUserAdminEnable 1
+sh /avct/sbin/enterprise.sh
+
+racadm set iDRAC.IPBlocking.RangeEnable Disabled
+racadm set iDRAC.SSH.Enable 1
+racadm set iDRAC.WebServer.Enable 1
 racadm set BIOS.SysProfileSettings.SysProfile Custom
 racadm set BIOS.SysProfileSettings.EnergyPerformanceBias MaxPower
 racadm set System.Power.Cap.Enable Disabled
