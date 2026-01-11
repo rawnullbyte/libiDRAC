@@ -49,7 +49,7 @@ racadm fwupdate -g -u -a x.x.x.x -d ftp/updates/firmimg.d7
 
 ---
 
-## Categories:
+## BIOS Categories:
 1. `racadm get BIOS.SysInformation`
 2. `racadm get BIOS.ProcSettings`
 3. `racadm get BIOS.MemSettings`
