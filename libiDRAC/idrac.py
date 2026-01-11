@@ -8,11 +8,13 @@ import ssl
 import uuid
 import asyncio
 import shutil
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 import socket
 import random
 import string
 import secrets
+import paramiko
+import time
 
 # Disable SSL warnings for httpx
 warnings.filterwarnings('ignore')
@@ -28,20 +30,11 @@ class iDRAC:
     def __init__(self, ip: str, port: int = 443):
         self.ip = ip
         self.port = port
+        self.username = None
+        self.password = None
         self.base_url = f"https://{ip}:{port}"
         self.payloadScripts = "./payloads/"
         self.client = None  # Initialize as None
-        self.payload_types = {
-            "adduser": {
-                "filename": "adduser.c",
-                "filenameEnterprise": "adduser_enterprise.c",
-                "variables": ["{username}", "{password}", "{privilege}"]
-            },
-            "reverseshell": {
-                "filename": "reverseshell.c",
-                "variables": ["{ip}", "{port}"]
-            }
-        }
     
     async def __aenter__(self):
         """Async context manager entry"""
@@ -200,7 +193,6 @@ class iDRAC:
             privilege: Privilege level for adduser payload
             reverse_ip: IP for reverse shell callback
             reverse_port: Port for reverse shell callback
-            enableEnterprise: Enable enterprise features
         """
         
         result = {
@@ -219,38 +211,22 @@ class iDRAC:
         }
 
         # Validate payload type
-        if payload_type not in self.payload_types:
+        availableTypes = [
+            os.path.splitext(f)[0]
+            for f in os.listdir(self.payloadScripts)
+            if f.endswith(".c") and os.path.isfile(os.path.join(self.payloadScripts, f))
+        ]
+        if payload_type not in availableTypes:
             result["success"] = False
-            result["error"] = f"Invalid payload type. Available types: {list(self.payload_types.keys())}"
+            result["error"] = f"Invalid payload type. Available types: {availableTypes}"
             return result
-
-        # Validate reverse shell parameters if needed
-        if payload_type == "reverseshell":
-            if not reverse_ip or not reverse_port:
-                result["success"] = False
-                result["error"] = "Reverse shell requires both reverse_ip and reverse_port parameters"
-                return result
-            try:
-                socket.inet_aton(reverse_ip)  # Validate IP address
-            except socket.error:
-                result["success"] = False
-                result["error"] = "Invalid IP address format"
-                return result
-            if not 1 <= reverse_port <= 65535:
-                result["success"] = False
-                result["error"] = "Port must be between 1 and 65535"
-                return result
 
         workFolder = f"work_{str(uuid.uuid4())[:8]}"
         os.makedirs(workFolder, exist_ok=True)
 
         try:
             # Load and prepare the payload
-            payload_info = self.payload_types[payload_type]
-            if payload_type == "adduser" and enableEnterprise == True:
-                CPayloadFile = os.path.join(self.payloadScripts, payload_info["filenameEnterprise"])
-            else:
-                CPayloadFile = os.path.join(self.payloadScripts, payload_info["filename"])
+            CPayloadFile = os.path.join(self.payloadScripts, payload_type)
             
             
             if not os.path.exists(CPayloadFile):
@@ -262,7 +238,7 @@ class iDRAC:
                 CPayload = f.read()
 
             # Replace variables based on payload type
-            if payload_type == "adduser":
+            if payload_type == "adduser" or "adduser_enterprise" or "quickpayload":
                 CPayload = CPayload.replace("{username}", username)
                 CPayload = CPayload.replace("{password}", password)
                 CPayload = CPayload.replace("{privilege}", privilege)
@@ -349,5 +325,103 @@ class iDRAC:
                 except Exception as e:
                     print(f"Warning: Could not clean up work folder {workFolder}: {e}")
     
-    async def genInventory(self):
-        pass
+    async def getInventory(self, username=None, password=None) -> Dict:
+        """
+        Get BIOS inventory by SSHing into the iDRAC, executing racadm commands,
+        waiting for completion, and returning raw logs.
+        """
+
+        username = self.username if username is None else username
+        password = self.password if password is None else password
+        
+        commands = [
+            "racadm get BIOS.SysInformation",
+            "racadm get BIOS.ProcSettings", 
+            "racadm get BIOS.MemSettings",
+            "racadm get BIOS.SysProfileSettings",
+            "racadm get BIOS.IntegratedDevices",
+            "racadm get BIOS.SlotDisablement",
+            "racadm get BIOS.SlotBifurcation",
+            "racadm get BIOS.SataSettings",
+            "racadm get BIOS.SysSecurity",
+            "racadm get BIOS.TpmAdvanced",
+            "racadm get BIOS.MiscSettings",
+            "racadm get BIOS.SerialCommSettings"
+        ]
+        
+        result = {
+            "success": False,
+            "error": None,
+            "raw_logs": ""
+        }
+        
+        client = None
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            
+            # Connect with default iDRAC credentials
+            print(f"SSH connecting to {self.ip}...")
+            client.connect(
+                hostname=self.ip,
+                port=22,
+                username=username,
+                password=password,
+                timeout=30,
+                allow_agent=False,
+                look_for_keys=False
+            )
+            
+            # Get shell channel
+            shell = client.invoke_shell()
+            time.sleep(3)  # Wait for shell to be ready
+            
+            # Clear any initial output
+            while shell.recv_ready():
+                shell.recv(1024)
+            
+            # Execute all commands
+            all_output = ""
+            for cmd in commands:
+                print(f"Executing: {cmd}")
+                shell.send(f"{cmd}\n")
+                time.sleep(1)  # Brief pause between commands
+            
+            # Wait for all commands to finish
+            print("Waiting for commands to complete...")
+            last_data_time = time.time()
+            idle_timeout = 15  # seconds
+            
+            while True:
+                if shell.recv_ready():
+                    output = shell.recv(4096).decode('utf-8', errors='ignore')
+                    all_output += output
+                    last_data_time = time.time()
+                    print(f"Received {len(output)} bytes")
+                elif shell.exit_status_ready():
+                    break
+                
+                # Check if idle for too long
+                if time.time() - last_data_time > idle_timeout:
+                    print(f"No data for {idle_timeout} seconds, assuming completion")
+                    break
+                
+                time.sleep(0.5)
+            
+            # Get any remaining output
+            while shell.recv_ready():
+                output = shell.recv(4096).decode('utf-8', errors='ignore')
+                all_output += output
+            
+            result["raw_logs"] = all_output
+            result["success"] = True
+            
+        except Exception as e:
+            result["error"] = f"SSH error: {str(e)}"
+            print(f"Error: {str(e)}")
+        finally:
+            if client:
+                client.close()
+                print("SSH connection closed")
+        
+        return result
