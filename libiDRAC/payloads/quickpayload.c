@@ -36,6 +36,7 @@ static void main(void)
     EXEC_CMD("racadm", "set", "iDRAC.IPBlocking.BlockEnable", "1");
 
     // BIOS and power settings
+    EXEC_CMD("racadm", "set", "LifecycleController.LCAttributes.CollectSystemInventoryOnRestart", "1");
     EXEC_CMD("racadm", "set", "BIOS.SysProfileSettings.SysProfile", "Custom");
     EXEC_CMD("racadm", "set", "BIOS.SysProfileSettings.EnergyPerformanceBias", "MaxPower");
     EXEC_CMD("racadm", "set", "System.Power.Cap.Enable", "Disabled");
