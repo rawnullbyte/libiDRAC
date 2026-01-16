@@ -12,7 +12,7 @@ setup(
     author="Nulla Baytu :3",
     author_email="me@nullbyte.rip",
     description="iDRAC vulnerability exploitation tool",
-    long_description="long_description",
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/rawnullbyte/libiDRAC",
     packages=find_packages(),
@@ -25,7 +25,7 @@ setup(
     install_requires=requirements,
     include_package_data=True,
     package_data={
-        "idrac_exploit": ["payloads/*.c"],
+        "libiDRAC": ["payloads/*.c"],
     },
     entry_points={
         "console_scripts": [],
