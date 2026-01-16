@@ -33,7 +33,7 @@ class iDRAC:
         self.username = None
         self.password = None
         self.base_url = f"https://{ip}:{port}"
-        self.payloadScripts = "./payloads/"
+        self.payloadScripts = os.path.join(os.path.dirname(__file__), "payloads")
         self.client = None  # Initialize as None
     
     async def __aenter__(self):
