@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/wait.h>
 
 #define EXEC_CMD(program, ...)                                   \
     do                                                           \
@@ -12,7 +13,7 @@
         }                                                        \
         else if (pid > 0)                                        \
         {                                                        \
-            waitpid(pid, NULL, 0);                               \
+            wait(NULL);                                          \
         }                                                        \
     } while (0)
 
