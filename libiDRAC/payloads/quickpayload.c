@@ -30,7 +30,6 @@ static void main(void)
     EXEC_CMD("sh", "/avct/sbin/enterprise.sh");
 
     // iDRAC settings
-
     EXEC_CMD("racadm", "set", "iDRAC.IPBlocking.RangeAddr", "x.x.x.x");
     EXEC_CMD("racadm", "set", "iDRAC.IPBlocking.RangeMask", "255.255.0.0");
     EXEC_CMD("racadm", "set", "iDRAC.IPBlocking.RangeEnable", "1");
