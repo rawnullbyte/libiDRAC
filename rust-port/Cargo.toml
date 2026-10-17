@@ -1,0 +1,39 @@
+[package]
+name = "libidrac"
+version = "1.1.0"
+edition = "2021"
+rust-version = "1.80"
+authors = ["Nulla Baytu :3"]
+license = "MIT"
+description = "iDRAC vulnerability exploitation tool (Rust port of libiDRAC)"
+repository = "https://github.com/rawnullbyte/libiDRAC"
+readme = "README.md"
+
+[lib]
+name = "libidrac"
+path = "src/lib.rs"
+
+[[bin]]
+name = "libidrac"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+hex = "0.4"
+rand = "0.9"
+# The default TLS backend (native-tls / schannel on Windows, OpenSSL elsewhere)
+# still understands TLS 1.0/1.1, which old iDRAC firmware negotiates.
+reqwest = { version = "0.13" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ssh2 = "0.9"
+tokio = { version = "1", features = ["full"] }
+
+# Speed: for this tool the wall time is dominated by TLS handshakes and
+# payload cross-compilation, so ship an aggressively optimized release build.
+# (fat LTO + single codegen unit shave cold-start and per-request latency).
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
