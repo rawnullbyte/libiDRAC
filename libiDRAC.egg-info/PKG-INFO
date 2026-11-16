@@ -1,0 +1,22 @@
+Metadata-Version: 2.4
+Name: libiDRAC
+Version: 1.0.0
+Summary: iDRAC vulnerability exploitation tool
+Home-page: https://github.com/rawnullbyte/libiDRAC
+Author: Nulla Baytu :3
+Author-email: me@nullbyte.rip
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: httpx
+Requires-Dist: paramiko
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
