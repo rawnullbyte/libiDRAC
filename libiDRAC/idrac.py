@@ -176,6 +176,26 @@ class iDRAC:
             return "iDRAC9"
         return None
 
+    @staticmethod
+    def _idracFromServerGen(value: str) -> Optional[str]:
+        """Map a server-generation string (e.g. '16G') to its iDRAC model.
+
+        Used by the legacy /data?get=prodServerGen endpoint (iDRAC6/7/8) and
+        by /sysmgmt/2015/bmc/info Attributes.ServerGen on iDRAC9.
+        """
+        if not value:
+            return None
+        generation = value.lower()
+        if "11g" in generation:
+            return "iDRAC6"
+        if "12g" in generation:
+            return "iDRAC7"
+        if "13g" in generation:
+            return "iDRAC8"
+        if any(gen in generation for gen in ("14g", "15g", "16g")):
+            return "iDRAC9"
+        return None
+
     async def getInfo(self):
         result = {
             "ip": self.ip,
@@ -185,6 +205,7 @@ class iDRAC:
             "idracModel": None,
             "license": None,
             "fwVersion": None,
+            "serviceTag": None,
             "error": None,
             "success": True,
         }
@@ -236,15 +257,9 @@ class iDRAC:
             responses += 1
             serverGen = self._tagValue(rServerGen.text or "", "prodServerGen")
             if serverGen:
-                generation = serverGen.lower()
-                if "11g" in generation:
-                    result["idracModel"] = "iDRAC6"
-                elif "12g" in generation:
-                    result["idracModel"] = "iDRAC7"
-                elif "13g" in generation:
-                    result["idracModel"] = "iDRAC8"
-                elif any(g in generation for g in ("14g", "15g", "16g")):
-                    result["idracModel"] = "iDRAC9"
+                mapped = self._idracFromServerGen(serverGen)
+                if mapped:
+                    result["idracModel"] = mapped
 
         rClassName = await self._fetchURLSafe("/data?get=prodClassName")
         if rClassName is not None and rClassName.status_code == 200:
@@ -328,6 +343,11 @@ class iDRAC:
                     result["systemModel"] = sysDescValue
 
         # --- iDRAC9 metadata endpoint ---------------------------------------
+        # iDRAC9 (fw >= 4.x/5.x) removed the legacy /session and /data APIs, so
+        # this unauthenticated endpoint is the main metadata source.  Key names
+        # differ from the older firmware: hostname is "iDRACName"/"GUITitleBar",
+        # the license is "License" (not "LicenseType"), and the server
+        # generation ("ServerGen", e.g. "16G") identifies the iDRAC model.
         rBmcInfo = await self._fetchURLSafe("/sysmgmt/2015/bmc/info")
         if rBmcInfo is not None and rBmcInfo.status_code == 200:
             responses += 1
@@ -338,11 +358,23 @@ class iDRAC:
             bmcModel = self._findValue(bmcText, "SystemModelName") or self._tagValue(
                 bmcText, "SystemModelName"
             )
-            bmcHost = self._findValue(bmcText, "HostName") or self._tagValue(
-                bmcText, "HostName"
+            bmcHost = (
+                self._findValue(bmcText, "iDRACName")
+                or self._findValue(bmcText, "GUITitleBar")
+                or self._findValue(bmcText, "HostName")
+                or self._tagValue(bmcText, "iDRACName")
+                or self._tagValue(bmcText, "HostName")
             )
-            bmcLicense = self._findValue(bmcText, "LicenseType") or self._tagValue(
-                bmcText, "LicenseType"
+            bmcLicense = (
+                self._findValue(bmcText, "License")
+                or self._findValue(bmcText, "LicenseType")
+                or self._tagValue(bmcText, "License")
+                or self._tagValue(bmcText, "LicenseType")
+            )
+            bmcServerGen = self._findValue(bmcText, "ServerGen")
+            bmcServiceTag = (
+                self._findValue(bmcText, "ServiceTag")
+                or self._findValue(bmcText, "ServiceIdentification")
             )
 
             if bmcFw and not result["fwVersion"]:
@@ -353,6 +385,12 @@ class iDRAC:
                 result["hostname"] = bmcHost
             if bmcLicense and not result["license"]:
                 result["license"] = bmcLicense
+            if bmcServiceTag and not result["serviceTag"]:
+                result["serviceTag"] = bmcServiceTag
+            if not result["idracModel"]:
+                mapped = self._idracFromServerGen(bmcServerGen or "")
+                if mapped:
+                    result["idracModel"] = mapped
 
         # --- iDRAC9 locale file (generation hint) ----------------------------
         rLocale = await self._fetchURLSafe("/restgui/locale/strings/locale_str_en.json")
@@ -372,15 +410,59 @@ class iDRAC:
         if rRedfish is not None and rRedfish.status_code == 200:
             responses += 1
             redfishText = rRedfish.text or ""
-            redfishFw = self._findValue(redfishText, "FirmwareVersion")
+            # iDRAC9 service roots expose the iDRAC firmware as
+            # "ManagerServicesFirmwareVersion" (newer builds) or
+            # "FirmwareVersion"; older/other BMCs may expose neither.
+            redfishFw = (
+                self._findValue(redfishText, "FirmwareVersion")
+                or self._findValue(redfishText, "ManagerServicesFirmwareVersion")
+            )
             redfishProduct = self._findValue(redfishText, "Product") or self._findValue(
                 redfishText, "ManagerModel"
             )
+            redfishServiceTag = (
+                self._findValue(redfishText, "ServiceTag")
+                or self._findValue(redfishText, "ServiceIdentification")
+            )
             if redfishFw and not result["fwVersion"]:
                 result["fwVersion"] = redfishFw
+            if redfishServiceTag and not result["serviceTag"]:
+                result["serviceTag"] = redfishServiceTag
             redfishModel = self._normalizeModelName(redfishProduct or "")
             if redfishModel and not result["idracModel"]:
                 result["idracModel"] = redfishModel
+
+        # --- Redfish manager resource (authenticated iDRAC9 firmware) --------
+        # /redfish/v1/Managers/1 carries the authoritative iDRAC firmware
+        # version but requires credentials; only query it when the caller has
+        # configured a username/password on this instance.
+        if self.username and self.password and not result["fwVersion"]:
+            try:
+                import base64
+
+                await self._ensure_client()
+                credentials = base64.b64encode(
+                    f"{self.username}:{self.password}".encode()
+                ).decode()
+                rMgr = await self.client.get(
+                    f"{self.base_url}/redfish/v1/Managers/1",
+                    headers={**DEFAULT_HEADERS, "Authorization": f"Basic {credentials}"},
+                    follow_redirects=True,
+                )
+                if rMgr is not None and rMgr.status_code == 200:
+                    responses += 1
+                    mgrText = rMgr.text or ""
+                    mgrFw = self._findValue(mgrText, "FirmwareVersion")
+                    mgrModel = self._findValue(mgrText, "Model") or self._findValue(
+                        mgrText, "ManagerModel"
+                    )
+                    if mgrFw and not result["fwVersion"]:
+                        result["fwVersion"] = mgrFw
+                    mgrNorm = self._normalizeModelName(mgrModel or "")
+                    if mgrNorm and not result["idracModel"]:
+                        result["idracModel"] = mgrNorm
+            except Exception:
+                pass
 
         # --- Infer the generation from the PowerEdge model name --------------
         if not result["idracModel"] and result["systemModel"]:
@@ -401,7 +483,14 @@ class iDRAC:
             result["error"] = "No iDRAC information endpoints responded"
         elif not any(
             result[key]
-            for key in ("hostname", "systemModel", "idracModel", "fwVersion")
+            for key in (
+                "hostname",
+                "systemModel",
+                "idracModel",
+                "fwVersion",
+                "license",
+                "serviceTag",
+            )
         ):
             result["success"] = False
             result["error"] = "iDRAC responded but no properties could be parsed"
